@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"slices"
@@ -13,53 +12,54 @@ import (
 )
 
 type DNSPerf struct {
-	mu   sync.Mutex
-	sent int
-	lost int
-	stat []*DNSPerfResult
+	mu      sync.Mutex
+	stat    []*DNSPerfResult
+	sent    int
+	lost    int
+	success int
 
 	Server string
 	Client *dns.Client
 }
 
-func NewDNSPerf(server string) *DNSPerf {
+func NewDNSPerf(server, protocol string, timeout time.Duration) *DNSPerf {
 	return &DNSPerf{
 		Server: server,
-		Client: new(dns.Client),
+		Client: &dns.Client{
+			Net:     protocol,
+			Timeout: timeout,
+		},
 	}
 }
 
 type DNSPerfRequest struct {
-	rName string
-	rType uint16
+	m *dns.Msg
+}
+
+func (r *DNSPerfRequest) ToString() string {
+	q := r.m.Question[0]
+	return fmt.Sprintf("%s %s", q.Name, dns.TypeToString[q.Qtype])
 }
 
 type DNSPerfResult struct {
 	q   *DNSPerfRequest
-	r   *dns.Msg
+	m   *dns.Msg
 	t   time.Time
-	ok  bool
+	err error
 	rtt time.Duration
 }
 
-func (p *DNSPerf) Query(ctx context.Context, q *DNSPerfRequest) {
-	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(q.rName), q.rType)
-
+func (p *DNSPerf) Query(q *DNSPerfRequest) {
 	start := time.Now()
-	r, _, err := p.Client.Exchange(m, p.Server)
-
-	ok := false
-	if r != nil && r.Rcode == dns.RcodeSuccess && err == nil {
-		ok = true
-	}
-
-	s := &DNSPerfResult{q: q, r: r, t: start, ok: ok, rtt: time.Since(start)}
+	m, _, err := p.Client.Exchange(q.m, p.Server)
+	s := &DNSPerfResult{q: q, m: m, t: start, err: err, rtt: time.Since(start)}
 
 	p.mu.Lock()
 	p.sent++
-	if !s.ok {
+	if s.err != nil || s.m == nil {
 		p.lost++
+	} else if s.m.Rcode == dns.RcodeSuccess {
+		p.success++
 	}
 	p.stat = append(p.stat, s)
 	p.mu.Unlock()
@@ -81,54 +81,60 @@ func (p *DNSPerf) Lost() int {
 
 func (p *DNSPerf) PrintStats(cfg *Config) {
 	p.mu.Lock()
+	stat := p.stat
 	sent := p.sent
 	lost := p.lost
-	stat := p.stat
+	success := p.success
 	p.mu.Unlock()
 
-	success := sent - lost
-	successRate := (float64(success) / float64(sent)) * 100
-
-	var sumRtt, minRtt, maxRtt int64
+	var sumRTT, minRTT, maxRTT int64
+	var reqSize, respSize int
 	rcodeCount := make(map[string]int)
 	for _, s := range stat {
 		rtt := s.rtt.Milliseconds()
-		sumRtt += rtt
+		sumRTT += rtt
 
-		if minRtt > rtt || minRtt == 0 {
-			minRtt = rtt
+		if minRTT > rtt || minRTT == 0 {
+			minRTT = rtt
 		}
 
-		if maxRtt < rtt || maxRtt == 0 {
-			maxRtt = rtt
+		if maxRTT < rtt || maxRTT == 0 {
+			maxRTT = rtt
 		}
 
-		if s.r != nil {
-			rcode := dns.RcodeToString[s.r.Rcode]
+		if s.err == nil && s.m != nil {
+			reqSize += s.q.m.Len()
+			respSize += s.m.Len()
+
+			rcode := dns.RcodeToString[s.m.Rcode]
 			rcodeCount[rcode]++
 		}
 	}
+
+	lostRate := 100 * (float64(lost) / float64(sent))
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
 
 	fmt.Fprintln(w, "\nStatistics")
 	fmt.Fprintf(w, "  Queries sent: \t%10d reqs\n", sent)
-	fmt.Fprintf(w, "  Queries completed: \t%10d reqs\t%5.1f%%\n", sent-lost, successRate)
-	fmt.Fprintf(w, "  Queries lost: \t%10d reqs\t%5.1f%%\n", lost, 100.0-successRate)
+	fmt.Fprintf(w, "  Queries completed: \t%10d reqs\t%5.1f%%\n", sent-lost, 100-lostRate)
+	fmt.Fprintf(w, "  Queries lost: \t%10d reqs\t%5.1f%%\n", lost, lostRate)
 	fmt.Fprintf(w, "  Queries per seconds: \t%10.1f q/s\n", float64(sent)/cfg.Duration.Seconds())
+	fmt.Fprintf(w, "  Request size(avg): \t%10d bytes\n", reqSize/sent)
+	fmt.Fprintf(w, "  Response size(avg): \t%10d bytes\n", respSize/sent)
 	if success > 0 {
-		avgRtt := sumRtt / int64(success)
-		fmt.Fprintf(w, "  Latency min: \t%10d ms\n", minRtt)
-		fmt.Fprintf(w, "  Latency avg: \t%10d ms\n", avgRtt)
-		fmt.Fprintf(w, "  Latency max: \t%10d ms\n", maxRtt)
+		avgRTT := sumRTT / int64(success)
+		fmt.Fprintf(w, "  Latency(min): \t%10d ms\n", minRTT)
+		fmt.Fprintf(w, "  Latency(avg): \t%10d ms\n", avgRTT)
+		fmt.Fprintf(w, "  Latency(max): \t%10d ms\n", maxRTT)
+	}
+
+	fmt.Fprintln(w, "\nStatistics per Rcode")
+	for rcode, count := range rcodeCount {
+		fmt.Fprintf(w, "  %8s count: \t%10d reqs\n", rcode, count)
 	}
 
 	if cfg.ShowDetail {
-		fmt.Fprintln(w, "\nStatistics per Rcode")
-		for rcode, count := range rcodeCount {
-			fmt.Fprintf(w, "  %8s count: \t%10d reqs\n", rcode, count)
-		}
-
 		spr := make(map[DNSPerfRequest][]*DNSPerfResult)
 		for _, s := range stat {
 			if len(spr[*s.q]) == 0 {
@@ -143,8 +149,9 @@ func (p *DNSPerf) PrintStats(cfg *Config) {
 			keys = append(keys, q)
 		}
 		slices.SortFunc(keys, func(x, y DNSPerfRequest) int {
-			kx := fmt.Sprintf("%s %s", x.rName, dns.TypeToString[x.rType])
-			ky := fmt.Sprintf("%s %s", y.rName, dns.TypeToString[y.rType])
+			kx := x.ToString()
+			ky := y.ToString()
+
 			switch {
 			case kx > ky:
 				return 1
@@ -157,20 +164,19 @@ func (p *DNSPerf) PrintStats(cfg *Config) {
 
 		fmt.Fprintln(w, "\nStatistics per query")
 		for _, q := range keys {
+			var lost int
 			var sumRTT int64
-			var success float64
 
 			for _, s := range spr[q] {
-				if s.ok {
-					success++
+				if s.err != nil || s.m == nil {
+					lost++
 				}
 				sumRTT += s.rtt.Milliseconds()
 			}
 
 			l := len(spr[q])
-			r := 100 * success / float64(l)
-			k := fmt.Sprintf("%s %s", q.rName, dns.TypeToString[q.rType])
-			fmt.Fprintf(w, "  %s\t%10d reqs\t%5.1f%% OK\tRTT: %d ms\n", k, l, r, sumRTT/int64(l))
+			r := 100 * float64(l-lost) / float64(l)
+			fmt.Fprintf(w, "  %s\t%10d reqs\t%5.1f%% OK\tRTT: %d ms\n", q.ToString(), l, r, sumRTT/int64(l))
 		}
 	}
 

@@ -12,14 +12,16 @@ import (
 )
 
 type Config struct {
-	Server      string        `short:"s" long:"server" description:"DNS server address to query" default:"127.0.0.1:53"`
 	Filepath    string        `short:"d" long:"filepth" description:"The input data file (required)" required:"true"`
-	Duration    time.Duration `short:"l" long:"duration" description:"Run for at most this duration - e.g. 10s, 1m" default:"10s"`
-	MaxSweep    int           `short:"n" long:"max-sweep" description:"Run through input at most N times - 0 for unlimited" default:"0"`
-	Workers     int           `short:"w" long:"workers" description:"The number of concurrent workers" default:"1"`
+	Server      string        `short:"s" long:"server" description:"DNS server address to query" default:"127.0.0.1:53"`
+	Protocol    string        `short:"m" long:"protocol" description:"Set transport mode" choice:"udp" choice:"tcp" default:"udp"`
+	Timeout     time.Duration `short:"t" long:"timeout" description:"The timeout for query completion" default:"2s"`
+	Duration    time.Duration `short:"l" long:"duration" description:"Run for at most this duration" default:"10s"`
+	MaxSweep    int           `short:"n" long:"max-sweep" description:"Run through input at most N times"`
+	Workers     int           `short:"c" long:"clients" description:"The number of concurrent clients" default:"1"`
 	Shuffle     bool          `short:"r" long:"shuffle" description:"Shuffle input"`
 	QPS         int           `short:"Q" long:"rate-limit" description:"Limit the number of queries per second" default:"10"`
-	QPSInterval time.Duration `short:"S" long:"rate-interval" description:"Print qps statistics interval" default:"0s"`
+	QPSInterval time.Duration `short:"S" long:"rate-interval" description:"The interval to print realtime statistics" default:"0s"`
 	ShowDetail  bool          `short:"v" long:"detail" description:"Print detail stats"`
 
 	Requests []*DNSPerfRequest `no-flag:"true"`
@@ -58,7 +60,10 @@ func LoadConfig() (*Config, error) {
 			return nil, fmt.Errorf("Invalid line: Unsupported type '%s'", parts[1])
 		}
 
-		request := &DNSPerfRequest{rName: qname, rType: qtype}
+		m := new(dns.Msg)
+		m.SetQuestion(dns.Fqdn(qname), qtype)
+		request := &DNSPerfRequest{m: m}
+
 		config.Requests = append(config.Requests, request)
 	}
 

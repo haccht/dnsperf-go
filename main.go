@@ -17,7 +17,7 @@ func run(cfg *Config) {
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Duration)
 	defer cancel()
 
-	client := NewDNSPerf(cfg.Server)
+	client := NewDNSPerf(cfg.Server, cfg.Protocol, cfg.Timeout)
 	reqCh := make(chan int, cfg.QPS)
 
 	// start workers
@@ -27,19 +27,13 @@ func run(cfg *Config) {
 		go func() {
 			defer wg.Done()
 
-			maxRequests := cfg.MaxSweep * len(cfg.Requests)
 			for {
 				select {
 				case <-ctx.Done():
 					return
 				case reqIndex := <-reqCh:
-					if maxRequests > 0 && client.Sent() >= maxRequests {
-						cancel()
-						return
-					}
-
 					req := cfg.Requests[reqIndex]
-					client.Query(ctx, req)
+					client.Query(req)
 				}
 			}
 		}()
@@ -73,19 +67,22 @@ func run(cfg *Config) {
 	policer := time.NewTicker(time.Second / time.Duration(cfg.QPS))
 	defer policer.Stop()
 	go func() {
-		reqIndex := 0
-		for {
+		maxRequests := cfg.MaxSweep * len(cfg.Requests)
+		for i := 0; ; i++ {
 			select {
 			case <-ctx.Done():
 				close(reqCh)
 				return
 			case <-policer.C:
+				if maxRequests > 0 && i >= maxRequests {
+					cancel()
+					return
+				}
+
 				if cfg.Shuffle {
-					reqIndex = rand.Intn(len(cfg.Requests))
-					reqCh <- reqIndex
+					reqCh <- rand.Intn(len(cfg.Requests))
 				} else {
-					reqCh <- reqIndex
-					reqIndex = (reqIndex + 1) % len(cfg.Requests)
+					reqCh <- i % len(cfg.Requests)
 				}
 			}
 		}
