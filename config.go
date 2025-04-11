@@ -58,7 +58,7 @@ func LoadConfig() (*Config, error) {
 			return nil, fmt.Errorf("Invalid line: Unsupported type '%s'", parts[1])
 		}
 
-		request := &DNSPerfRequest{name: qname, Type: qtype}
+		request := &DNSPerfRequest{rName: qname, rType: qtype}
 		config.Requests = append(config.Requests, request)
 	}
 

@@ -32,14 +32,14 @@ func run(cfg *Config) {
 				select {
 				case <-ctx.Done():
 					return
-				case reqIndex := <- reqCh:
+				case reqIndex := <-reqCh:
 					if maxRequests > 0 && client.Sent() >= maxRequests {
 						cancel()
 						return
 					}
 
-					entry := cfg.Requests[reqIndex]
-					client.Query(entry)
+					req := cfg.Requests[reqIndex]
+					client.Query(ctx, req)
 				}
 			}
 		}()
@@ -61,9 +61,8 @@ func run(cfg *Config) {
 				case <-ticker.C:
 					sent := client.Sent()
 					lost := client.Lost()
-					deltaSent := sent - prevSent
-					log.Printf("  Sent: %-10d Loss: %-10d QPS: %7.1fq/s\n", sent, lost, float64(deltaSent)/cfg.QPSInterval.Seconds())
-
+					qps := float64(sent-prevSent) / cfg.QPSInterval.Seconds()
+					log.Printf("    Sent: %d reqs\t\tLoss: %d reqs\t\tQPS: %.1f q/s\n", sent, lost, qps)
 					prevSent = sent
 				}
 			}
@@ -92,7 +91,6 @@ func run(cfg *Config) {
 		}
 	}()
 
-
 	<-ctx.Done()
 	wg.Wait()
 	log.Println("Performance Test completed")
@@ -101,11 +99,11 @@ func run(cfg *Config) {
 }
 
 func main() {
-	config, err := LoadConfig()
+	cfg, err := LoadConfig()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
-	run(config)
+	run(cfg)
 }

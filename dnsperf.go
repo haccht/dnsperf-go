@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"slices"
 	"sync"
+	"text/tabwriter"
 	"time"
 
 	"github.com/miekg/dns"
@@ -26,8 +30,8 @@ func NewDNSPerf(server string) *DNSPerf {
 }
 
 type DNSPerfRequest struct {
-	name string
-	Type uint16
+	rName string
+	rType uint16
 }
 
 type DNSPerfResult struct {
@@ -38,9 +42,9 @@ type DNSPerfResult struct {
 	rtt time.Duration
 }
 
-func (p *DNSPerf) Query(q *DNSPerfRequest) {
+func (p *DNSPerf) Query(ctx context.Context, q *DNSPerfRequest) {
 	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(q.name), q.Type)
+	m.SetQuestion(dns.Fqdn(q.rName), q.rType)
 
 	start := time.Now()
 	r, _, err := p.Client.Exchange(m, p.Server)
@@ -54,7 +58,7 @@ func (p *DNSPerf) Query(q *DNSPerfRequest) {
 
 	p.mu.Lock()
 	p.sent++
-	if !ok {
+	if !s.ok {
 		p.lost++
 	}
 	p.stat = append(p.stat, s)
@@ -99,23 +103,76 @@ func (p *DNSPerf) PrintStats(cfg *Config) {
 			maxRtt = rtt
 		}
 
-		rcode := dns.RcodeToString[s.r.Rcode]
-		rcodeCount[rcode]++
+		if s.r != nil {
+			rcode := dns.RcodeToString[s.r.Rcode]
+			rcodeCount[rcode]++
+		}
 	}
 
-	fmt.Println("\nStatistics:")
-	fmt.Printf("  Queries sent:         %d\n", sent)
-	fmt.Printf("  Queries completed:    %d  %5.1f%%\n", sent-lost, successRate)
-	fmt.Printf("  Queries lost:         %d  %5.1f%%\n", lost, 100.0-successRate)
-	fmt.Printf("  Queries per seconds:  %.1fq/s\n", float64(sent)/cfg.Duration.Seconds())
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
 
+	fmt.Fprintln(w, "\nStatistics")
+	fmt.Fprintf(w, "  Queries sent: \t%10d reqs\n", sent)
+	fmt.Fprintf(w, "  Queries completed: \t%10d reqs\t%5.1f%%\n", sent-lost, successRate)
+	fmt.Fprintf(w, "  Queries lost: \t%10d reqs\t%5.1f%%\n", lost, 100.0-successRate)
+	fmt.Fprintf(w, "  Queries per seconds: \t%10.1f q/s\n", float64(sent)/cfg.Duration.Seconds())
 	if success > 0 {
-		avgRtt := sumRtt/int64(success)
-		fmt.Printf("  Latency(min/avg/max): %dms / %dms / %dms\n", minRtt, avgRtt, maxRtt)
+		avgRtt := sumRtt / int64(success)
+		fmt.Fprintf(w, "  Latency min: \t%10d ms\n", minRtt)
+		fmt.Fprintf(w, "  Latency avg: \t%10d ms\n", avgRtt)
+		fmt.Fprintf(w, "  Latency max: \t%10d ms\n", maxRtt)
 	}
 
-	fmt.Println()
-	for rcode, count := range rcodeCount {
-		fmt.Printf("  %-8s count:       %d\n", rcode, count)
+	if cfg.ShowDetail {
+		fmt.Fprintln(w, "\nStatistics per Rcode")
+		for rcode, count := range rcodeCount {
+			fmt.Fprintf(w, "  %8s count: \t%10d reqs\n", rcode, count)
+		}
+
+		spr := make(map[DNSPerfRequest][]*DNSPerfResult)
+		for _, s := range stat {
+			if len(spr[*s.q]) == 0 {
+				spr[*s.q] = []*DNSPerfResult{}
+			}
+
+			spr[*s.q] = append(spr[*s.q], s)
+		}
+
+		keys := make([]DNSPerfRequest, 0, len(spr))
+		for q := range spr {
+			keys = append(keys, q)
+		}
+		slices.SortFunc(keys, func(x, y DNSPerfRequest) int {
+			kx := fmt.Sprintf("%s %s", x.rName, dns.TypeToString[x.rType])
+			ky := fmt.Sprintf("%s %s", y.rName, dns.TypeToString[y.rType])
+			switch {
+			case kx > ky:
+				return 1
+			case kx < ky:
+				return -1
+			default:
+				return 0
+			}
+		})
+
+		fmt.Fprintln(w, "\nStatistics per query")
+		for _, q := range keys {
+			var sumRTT int64
+			var success float64
+
+			for _, s := range spr[q] {
+				if s.ok {
+					success++
+				}
+				sumRTT += s.rtt.Milliseconds()
+			}
+
+			l := len(spr[q])
+			r := 100 * success / float64(l)
+			k := fmt.Sprintf("%s %s", q.rName, dns.TypeToString[q.rType])
+			fmt.Fprintf(w, "  %s\t%10d reqs\t%5.1f%% OK\tRTT: %d ms\n", k, l, r, sumRTT/int64(l))
+		}
 	}
+
+	w.Flush()
 }
