@@ -127,11 +127,11 @@ func (p *DNSPerf) PrintStats(cfg *Config) {
 		fmt.Fprintf(w, "  Latency(min): \t%10d ms\n", minRTT)
 		fmt.Fprintf(w, "  Latency(avg): \t%10d ms\n", avgRTT)
 		fmt.Fprintf(w, "  Latency(max): \t%10d ms\n", maxRTT)
-	}
 
-	fmt.Fprintln(w, "\nStatistics per Rcode")
-	for rcode, count := range rcodeCount {
-		fmt.Fprintf(w, "  %8s count: \t%10d reqs\n", rcode, count)
+		fmt.Fprintln(w, "\nStatistics per Rcode")
+		for rcode, count := range rcodeCount {
+			fmt.Fprintf(w, "  %8s count: \t%10d reqs\n", rcode, count)
+		}
 	}
 
 	if cfg.ShowDetail {
