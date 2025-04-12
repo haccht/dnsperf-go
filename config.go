@@ -15,12 +15,12 @@ type Config struct {
 	Filepath    string        `short:"d" long:"filepth" description:"The input data file (required)" required:"true"`
 	Server      string        `short:"s" long:"server" description:"DNS server address to query" default:"127.0.0.1:53"`
 	Protocol    string        `short:"m" long:"protocol" description:"Set transport mode" choice:"udp" choice:"tcp" default:"udp"`
-	Timeout     time.Duration `short:"t" long:"timeout" description:"The timeout for query completion" default:"2s"`
+	Timeout     time.Duration `short:"t" long:"timeout" description:"The timeout for query completion" default:"1s"`
 	Duration    time.Duration `short:"l" long:"duration" description:"Run for at most this duration" default:"10s"`
 	MaxSweep    int           `short:"n" long:"max-sweep" description:"Run through input at most N times"`
 	Workers     int           `short:"c" long:"clients" description:"The number of concurrent clients" default:"1"`
 	Shuffle     bool          `short:"r" long:"shuffle" description:"Shuffle input"`
-	QPS         int           `short:"Q" long:"rate-limit" description:"Limit the number of queries per second" default:"10"`
+	QPS         int           `short:"Q" long:"rate-limit" description:"Limit the number of queries per second" default:"1"`
 	QPSInterval time.Duration `short:"S" long:"rate-interval" description:"The interval to print realtime statistics" default:"0s"`
 	ShowDetail  bool          `short:"v" long:"detail" description:"Print detail stats"`
 

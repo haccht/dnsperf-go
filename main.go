@@ -17,7 +17,7 @@ func run(cfg *Config) {
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Duration)
 	defer cancel()
 
-	client := NewDNSPerf(cfg.Server, cfg.Protocol, cfg.Timeout)
+	perf := NewDNSPerf(cfg.Server, cfg.Protocol, cfg.Timeout)
 	reqCh := make(chan int, cfg.QPS)
 
 	// start workers
@@ -33,7 +33,7 @@ func run(cfg *Config) {
 					return
 				case reqIndex := <-reqCh:
 					req := cfg.Requests[reqIndex]
-					client.Query(req)
+					perf.Perform(req)
 				}
 			}
 		}()
@@ -53,8 +53,8 @@ func run(cfg *Config) {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					sent := client.Sent()
-					lost := client.Lost()
+					sent := perf.Sent()
+					lost := perf.Lost()
 					qps := float64(sent-prevSent) / cfg.QPSInterval.Seconds()
 					log.Printf("    Sent: %d reqs\t\tLoss: %d reqs\t\tQPS: %.1f q/s\n", sent, lost, qps)
 					prevSent = sent
@@ -64,9 +64,10 @@ func run(cfg *Config) {
 	}
 
 	// rate limit
-	policer := time.NewTicker(time.Second / time.Duration(cfg.QPS))
-	defer policer.Stop()
 	go func() {
+		policer := time.NewTicker(time.Second / time.Duration(cfg.QPS))
+		defer policer.Stop()
+
 		maxRequests := cfg.MaxSweep * len(cfg.Requests)
 		for i := 0; ; i++ {
 			select {
@@ -76,7 +77,7 @@ func run(cfg *Config) {
 			case <-policer.C:
 				if maxRequests > 0 && i >= maxRequests {
 					cancel()
-					return
+					continue
 				}
 
 				if cfg.Shuffle {
@@ -90,9 +91,9 @@ func run(cfg *Config) {
 
 	<-ctx.Done()
 	wg.Wait()
-	log.Println("Performance Test completed")
+	log.Println("Performance test completed")
 
-	client.PrintStats(cfg)
+	perf.PrintStats(cfg)
 }
 
 func main() {
