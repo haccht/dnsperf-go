@@ -12,17 +12,18 @@ Application Options:
   -d, --filepth=           The input data file (required)
   -s, --server=            DNS server address to query (default: 127.0.0.1:53)
   -m, --protocol=[udp|tcp] Set transport mode (default: udp)
-  -t, --timeout=           The timeout for query completion (default: 2s)
+  -t, --timeout=           The timeout for query completion (default: 1s)
   -l, --duration=          Run for at most this duration (default: 10s)
   -n, --max-sweep=         Run through input at most N times
   -c, --clients=           The number of concurrent clients (default: 1)
   -r, --shuffle            Shuffle input
-  -Q, --rate-limit=        Limit the number of queries per second (default: 10)
-  -S, --rate-interval=     The interval to print realtime statistics (default: 0s)
+  -Q, --rate-limit=        Limit the number of QPS (default: 1)
+  -S, --show-qps=          The interval to show realtime QPS (default: 0s)
   -v, --detail             Print detail stats
 
 Help Options:
   -h, --help               Show this help message
+
 ```
 
 ```

@@ -20,8 +20,8 @@ type Config struct {
 	MaxSweep    int           `short:"n" long:"max-sweep" description:"Run through input at most N times"`
 	Workers     int           `short:"c" long:"clients" description:"The number of concurrent clients" default:"1"`
 	Shuffle     bool          `short:"r" long:"shuffle" description:"Shuffle input"`
-	QPS         int           `short:"Q" long:"rate-limit" description:"Limit the number of queries per second" default:"1"`
-	QPSInterval time.Duration `short:"S" long:"rate-interval" description:"The interval to print realtime statistics" default:"0s"`
+	QPS         int           `short:"Q" long:"rate-limit" description:"Limit the number of QPS" default:"1"`
+	QPSInterval time.Duration `short:"S" long:"show-qps" description:"The interval to show realtime QPS" default:"0s"`
 	ShowDetail  bool          `short:"v" long:"detail" description:"Print detail stats"`
 
 	Requests []*DNSPerfRequest `no-flag:"true"`
