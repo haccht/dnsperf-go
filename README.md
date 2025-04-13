@@ -55,8 +55,8 @@ Statistics
   Latency(stddev):              17 ms
 
 Statistics per Rcode
-   NOERROR count:               91 reqs
-  NXDOMAIN count:               10 reqs
+   NOERROR count:             1861 reqs
+  NXDOMAIN count:              204 reqs
 ```
 
 ## Input file format
