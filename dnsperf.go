@@ -76,10 +76,12 @@ func (p *DNSPerf) Perform(req *DNSPerfRequest) {
 	p.stat.sent++
 	if res.err != nil || res.m == nil {
 		p.stat.lost++
-	} else if res.m.Rcode == dns.RcodeSuccess {
-		p.stat.success++
-	}
-	p.stat.rcodes[res.m.Rcode]++
+	} else if res.m != nil {
+        p.stat.rcodes[res.m.Rcode]++
+        if res.m.Rcode == dns.RcodeSuccess {
+            p.stat.success++
+        }
+    }
 	p.results = append(p.results, res)
 	p.mu.Unlock()
 }
@@ -162,6 +164,8 @@ func (p *DNSPerf) Statistics(cfg *Config) string {
 		}
 	}
 
+	w.Flush()
+
 	if cfg.ShowDetail {
 		resMap := make(map[DNSPerfRequest][]*DNSPerfResult)
 		for _, s := range p.results {
@@ -182,25 +186,33 @@ func (p *DNSPerf) Statistics(cfg *Config) string {
 			return cmp.Compare(kx, ky)
 		})
 
-		fmt.Fprintln(w, "\nStatistics per query")
+		fmt.Fprintln(&buf, "\nStatistics per query")
 		for _, req := range reqs {
 			var lost int
 			var sumRTT int64
 
+            rcodes := make(map[int]int)
 			for _, res := range resMap[req] {
 				if res.err != nil || res.m == nil {
 					lost++
 				}
+                rcodes[res.m.Rcode]++
 				rtt := res.rtt.Milliseconds()
 				sumRTT += rtt
 			}
 
-			l := len(resMap[req])
-			r := 100 * float64(l-lost) / float64(l)
-			fmt.Fprintf(w, "  %s\t%10d reqs\t%5.1f%% OK\tRTT: %d ms\n", req.Question(), l, r, sumRTT/int64(l))
+			s := len(resMap[req])
+			r := 100 * float64(lost) / float64(s)
+            fmt.Fprintf(&buf, "  %s   =>\tTotal: %d", req.Question(), s)
+            for rcode := range len(dns.RcodeToString) {
+                cnt := rcodes[rcode]
+                if cnt > 0 {
+                    fmt.Fprintf(&buf, "\t%s: %d", dns.RcodeToString[rcode], cnt)
+                }
+            }
+            fmt.Fprintf(&buf, "\tLoss: %5.1f%%\tRTT: %d ms\n", r, sumRTT/int64(s))
 		}
 	}
 
-	w.Flush()
 	return buf.String()
 }
