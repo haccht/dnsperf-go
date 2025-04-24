@@ -6,9 +6,9 @@ import (
 	"log"
 	"math/rand"
 	"os"
-    "os/signal"
-	"syscall"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -87,8 +87,8 @@ func run(cfg *Config) {
 	}()
 
 	go func() {
-        sigs := make(chan os.Signal, 1)
-        signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 		<-sigs
 		cancel()
