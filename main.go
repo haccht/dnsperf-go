@@ -86,6 +86,7 @@ func run(cfg *Config) {
 		}
 	}()
 
+	// signals
 	go func() {
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -99,7 +100,7 @@ func run(cfg *Config) {
 	wg.Wait()
 	log.Println("Performance test completed")
 
-	fmt.Print(perf.Statistics(cfg))
+	fmt.Print(perf.Stat(cfg))
 }
 
 func main() {

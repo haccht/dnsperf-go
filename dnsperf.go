@@ -22,8 +22,8 @@ type DNSPerfStat struct {
 
 type DNSPerf struct {
 	mu      sync.Mutex
-	prev    *DNSPerfStat
 	stat    *DNSPerfStat
+	prev    *DNSPerfStat
 	results []*DNSPerfResult
 
 	Server string
@@ -32,8 +32,8 @@ type DNSPerf struct {
 
 func NewDNSPerf(server, protocol string, timeout time.Duration) *DNSPerf {
 	return &DNSPerf{
-		prev:    &DNSPerfStat{rcodes: make(map[int]int)},
 		stat:    &DNSPerfStat{rcodes: make(map[int]int)},
+		prev:    &DNSPerfStat{rcodes: make(map[int]int)},
 		results: make([]*DNSPerfResult, 0),
 
 		Server: server,
@@ -77,11 +77,11 @@ func (p *DNSPerf) Perform(req *DNSPerfRequest) {
 	if res.err != nil || res.m == nil {
 		p.stat.lost++
 	} else if res.m != nil {
-        p.stat.rcodes[res.m.Rcode]++
-        if res.m.Rcode == dns.RcodeSuccess {
-            p.stat.success++
-        }
-    }
+		p.stat.rcodes[res.m.Rcode]++
+		if res.m.Rcode == dns.RcodeSuccess {
+			p.stat.success++
+		}
+	}
 	p.results = append(p.results, res)
 	p.mu.Unlock()
 }
@@ -109,7 +109,7 @@ func (p *DNSPerf) Tick(cfg *Config) string {
 	return buf.String()
 }
 
-func (p *DNSPerf) Statistics(cfg *Config) string {
+func (p *DNSPerf) Stat(cfg *Config) string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -163,7 +163,6 @@ func (p *DNSPerf) Statistics(cfg *Config) string {
 			}
 		}
 	}
-
 	w.Flush()
 
 	if cfg.ShowDetail {
@@ -191,26 +190,26 @@ func (p *DNSPerf) Statistics(cfg *Config) string {
 			var lost int
 			var sumRTT int64
 
-            rcodes := make(map[int]int)
+			rcodes := make(map[int]int)
 			for _, res := range resMap[req] {
 				if res.err != nil || res.m == nil {
 					lost++
 				}
-                rcodes[res.m.Rcode]++
+				rcodes[res.m.Rcode]++
 				rtt := res.rtt.Milliseconds()
 				sumRTT += rtt
 			}
 
 			s := len(resMap[req])
 			r := 100 * float64(lost) / float64(s)
-            fmt.Fprintf(&buf, "  %s   =>\tTotal: %d", req.Question(), s)
-            for rcode := range len(dns.RcodeToString) {
-                cnt := rcodes[rcode]
-                if cnt > 0 {
-                    fmt.Fprintf(&buf, "\t%s: %d", dns.RcodeToString[rcode], cnt)
-                }
-            }
-            fmt.Fprintf(&buf, "\tLoss: %5.1f%%\tRTT: %d ms\n", r, sumRTT/int64(s))
+			fmt.Fprintf(&buf, "  %s   =>\tTotal: %d", req.Question(), s)
+			for rcode := range len(dns.RcodeToString) {
+				cnt := rcodes[rcode]
+				if cnt > 0 {
+					fmt.Fprintf(&buf, "\t%s: %d", dns.RcodeToString[rcode], cnt)
+				}
+			}
+			fmt.Fprintf(&buf, "\tLoss: %5.1f%%\tRTT: %d ms\n", r, sumRTT/int64(s))
 		}
 	}
 
