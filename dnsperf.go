@@ -92,7 +92,6 @@ func (p *DNSPerf) PrintStats(cfg *Config) {
 	stat := p.stat
 	sent := p.sent
 	lost := p.lost
-	success := p.success
 	p.mu.Unlock()
 
 	var reqSize, respSize int
@@ -129,7 +128,7 @@ func (p *DNSPerf) PrintStats(cfg *Config) {
 	fmt.Fprintf(w, "  Queries per seconds: \t%10.1f q/s\n", float64(sent)/cfg.Duration.Seconds())
 	fmt.Fprintf(w, "  Request size(avg): \t%10d bytes\n", reqSize/sent)
 	fmt.Fprintf(w, "  Response size(avg): \t%10d bytes\n", respSize/sent)
-	if success > 0 {
+	if lost == 0 {
 		avgRTT := sumRTT / int64(sent)
 		stddevRTT := math.Sqrt(float64(sqsumRTT)/float64(sent) - float64(avgRTT*avgRTT))
 
