@@ -6,6 +6,8 @@ import (
 	"log"
 	"math/rand"
 	"os"
+    "os/signal"
+	"syscall"
 	"sync"
 	"time"
 )
@@ -84,7 +86,16 @@ func run(cfg *Config) {
 		}
 	}()
 
+	go func() {
+        sigs := make(chan os.Signal, 1)
+        signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+		<-sigs
+		cancel()
+	}()
+
 	<-ctx.Done()
+
 	wg.Wait()
 	log.Println("Performance test completed")
 
