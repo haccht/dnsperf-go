@@ -47,17 +47,12 @@ func run(cfg *Config) {
 			defer ticker.Stop()
 			defer wg.Done()
 
-			var prevSent int
 			for {
 				select {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					sent := perf.Sent()
-					lost := perf.Lost()
-					qps := float64(sent-prevSent) / cfg.QPSInterval.Seconds()
-					log.Printf("    Sent: %d reqs\t\tLoss: %d reqs\t\tQPS: %.1f q/s\n", sent, lost, qps)
-					prevSent = sent
+					log.Println(perf.Tick(cfg))
 				}
 			}
 		}()
@@ -93,7 +88,7 @@ func run(cfg *Config) {
 	wg.Wait()
 	log.Println("Performance test completed")
 
-	perf.PrintStats(cfg)
+	fmt.Print(perf.Statistics(cfg))
 }
 
 func main() {
