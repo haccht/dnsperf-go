@@ -93,7 +93,7 @@ func (p *DNSPerf) Tick(cfg *Config) string {
 	var buf bytes.Buffer
 	qps := float64(p.stat.sent-p.prev.sent) / cfg.QPSInterval.Seconds()
 
-	fmt.Fprintf(&buf, "\tRate=%.1fq/s\tSent=%d\tLoss=%d", qps, p.stat.sent-p.prev.sent, p.stat.lost-p.prev.lost)
+	fmt.Fprintf(&buf, "\tRate=%.1fq/s \tSent=%d \tLoss=%d", qps, p.stat.sent-p.prev.sent, p.stat.lost-p.prev.lost)
 	for rcode := range len(dns.RcodeToString) {
 		cnt := p.stat.rcodes[rcode] - p.prev.rcodes[rcode]
 		if cnt > 0 {
