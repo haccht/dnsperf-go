@@ -28,35 +28,34 @@ Help Options:
 
 ```
 $ dnsperf-go -s 10.0.0.1:53 -d names.txt -l10s -Q200 -c300 -S1s
-2025/04/12 12:30:04 Sending queries to 10.0.0.1:53
-2025/04/12 12:30:04 Duration=10s  RateLimit=200q/s  Workers=300
-2025/04/12 12:30:05     Sent: 99 reqs           Loss: 0 reqs         QPS: 99.0 q/s
-2025/04/12 12:30:06     Sent: 300 reqs          Loss: 0 reqs         QPS: 201.0 q/s
-2025/04/12 12:30:07     Sent: 499 reqs          Loss: 0 reqs         QPS: 199.0 q/s
-2025/04/12 12:30:08     Sent: 699 reqs          Loss: 0 reqs         QPS: 200.0 q/s
-2025/04/12 12:30:09     Sent: 899 reqs          Loss: 0 reqs         QPS: 200.0 q/s
-2025/04/12 12:30:10     Sent: 1098 reqs         Loss: 0 reqs         QPS: 199.0 q/s
-2025/04/12 12:30:11     Sent: 1298 reqs         Loss: 0 reqs         QPS: 200.0 q/s
-2025/04/12 12:30:12     Sent: 1498 reqs         Loss: 0 reqs         QPS: 200.0 q/s
-2025/04/12 12:30:13     Sent: 1699 reqs         Loss: 0 reqs         QPS: 201.0 q/s
-2025/04/12 12:30:14     Sent: 1898 reqs         Loss: 0 reqs         QPS: 199.0 q/s
-2025/04/12 12:30:17 Performance test completed
+2025/04/27 11:42:24 Sending queries to 10.0.0.1:53
+2025/04/27 11:42:24 Duration=10s  RateLimit=200q/s  Workers=300
+2025/04/27 11:42:25     Rate=199.0q/s   Sent=199        Loss=0  NOERROR=199
+2025/04/27 11:42:26     Rate=200.0q/s   Sent=200        Loss=0  NOERROR=200
+2025/04/27 11:42:27     Rate=199.0q/s   Sent=199        Loss=0  NOERROR=199
+2025/04/27 11:42:28     Rate=200.0q/s   Sent=200        Loss=0  NOERROR=200
+2025/04/27 11:42:29     Rate=200.0q/s   Sent=200        Loss=0  NOERROR=200
+2025/04/27 11:42:30     Rate=200.0q/s   Sent=200        Loss=0  NOERROR=200
+2025/04/27 11:42:31     Rate=200.0q/s   Sent=200        Loss=0  NOERROR=200
+2025/04/27 11:42:32     Rate=200.0q/s   Sent=200        Loss=0  NOERROR=200
+2025/04/27 11:42:33     Rate=200.0q/s   Sent=200        Loss=0  NOERROR=200
+2025/04/27 11:42:34 Performance test completed
 
 Statistics
-  Queries sent:               2065 reqs
-  Queries completed:          2065 reqs 100.0%
+  Queries sent:               2003 reqs
+  Queries completed:          2003 reqs 100.0%
   Queries lost:                  0 reqs   0.0%
-  Queries per seconds:       206.5 q/s
-  Request size(avg):            31 bytes
-  Response size(avg):          162 bytes
-  Latency(min):                  7 ms
-  Latency(avg):                 12 ms
-  Latency(max):                122 ms
-  Latency(stddev):              17 ms
+  Queries per seconds:       200.1 q/s
+  Run time:                  10.01 sec
+  Latency(min):                  0 msec
+  Latency(avg):                  7 msec
+  Latency(max):                134 msec
+  Latency(stddev):               5 msec
+  Request size(avg):            43 bytes
+  Response size(avg):           84 bytes
 
 Statistics per Rcode
-   NOERROR count:             1861 reqs
-  NXDOMAIN count:              204 reqs
+   NOERROR count:             2003 reqs
 ```
 
 ## Input file format
