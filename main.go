@@ -41,26 +41,8 @@ func run(cfg *Config) {
 		}()
 	}
 
-	// qps counter
-	if cfg.QPSInterval.Seconds() > 0 {
-		wg.Add(1)
-		go func() {
-			ticker := time.NewTicker(cfg.QPSInterval)
-			defer ticker.Stop()
-			defer wg.Done()
-
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-					log.Println(perf.Tick(cfg))
-				}
-			}
-		}()
-	}
-
-	// rate limit
+	// rate-limiting
+	start := time.Now()
 	go func() {
 		policer := time.NewTicker(time.Second / time.Duration(cfg.QPS))
 		defer policer.Stop()
@@ -86,6 +68,25 @@ func run(cfg *Config) {
 		}
 	}()
 
+	// qps counter
+	if cfg.TickInterval.Seconds() > 0 {
+		wg.Add(1)
+		go func() {
+			ticker := time.NewTicker(cfg.TickInterval)
+			defer ticker.Stop()
+			defer wg.Done()
+
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					log.Println(perf.Tick(cfg.TickInterval))
+				}
+			}
+		}()
+	}
+
 	// signals
 	go func() {
 		sigs := make(chan os.Signal, 1)
@@ -100,7 +101,8 @@ func run(cfg *Config) {
 	wg.Wait()
 	log.Println("Performance test completed")
 
-	fmt.Print(perf.Stat(cfg))
+	duration := time.Since(start)
+	fmt.Print(perf.Stat(duration, cfg.Verbose))
 }
 
 func main() {
