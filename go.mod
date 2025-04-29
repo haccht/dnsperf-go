@@ -5,6 +5,7 @@ go 1.24.2
 require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/miekg/dns v1.1.65
+	golang.org/x/time v0.11.0
 )
 
 require (
