@@ -12,17 +12,17 @@ import (
 )
 
 type Options struct {
-	Input         string        `short:"d" description:"Path to query list file (required)" required:"true"`
-	Target        string        `short:"s" description:"DNS server address" default:"127.0.0.1:53"`
-	Transport     string        `short:"m" description:"Network transport mode" choice:"udp" choice:"tcp" default:"udp"`
-	Timeout       time.Duration `short:"t" description:"Timeout for query completion" default:"1s"`
-	Duration      time.Duration `short:"l" description:"Total benchmark duration" default:"10s"`
-	Loops         int           `short:"n" description:"Maximum passes over the input list (0 = unlimited)" default:"0"`
-	Concurrency   int           `short:"c" description:"Number of concurrent workers" default:"1"`
-	Rate          int           `short:"Q" description:"Global query-per-seconds limit" default:"1"`
-	StatsInterval time.Duration `short:"S" description:"Print stats every N seconds (0s = disable)" default:"0s"`
-	StatsPerQuery bool          `short:"p" description:"Print stats per queries (default: false)"`
-	Shuffle       bool          `short:"r" description:"Shuffle input (default: false)"`
+	Input         string        `short:"d" long:"input" description:"Path to query list file (required)" required:"true"`
+	Target        string        `short:"s" long:"server" description:"DNS server address" default:"127.0.0.1:53"`
+	Transport     string        `short:"m" long:"transport" description:"Network transport mode" choice:"udp" choice:"tcp" default:"udp"`
+	Timeout       time.Duration `short:"t" long:"timeout" description:"Timeout for query completion" default:"1s"`
+	Duration      time.Duration `short:"l" long:"duration" description:"Total benchmark duration" default:"10s"`
+	Loops         int           `short:"n" long:"loops" description:"Maximum passes over the input list (0 = unlimited)" default:"0"`
+	Concurrency   int           `short:"c" long:"workers" description:"Number of concurrent workers" default:"1"`
+	Rate          int           `short:"Q" long:"qps" description:"Global query-per-seconds limit" default:"1"`
+	StatsInterval time.Duration `short:"S" long:"realtime-stats" description:"Print stats every N seconds (0s = disable)" default:"0s"`
+	StatsPerQuery bool          `short:"p" long:"per-query-stats" description:"Print stats per queries (default: false)"`
+	Shuffle       bool          `short:"r" long:"shuffle" description:"Shuffle input (default: false)"`
 
 	Queries []*query `no-flag:"true"`
 }
