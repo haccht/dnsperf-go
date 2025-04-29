@@ -21,8 +21,8 @@ type Options struct {
 	Concurrency   int           `short:"c" description:"Number of concurrent workers" default:"1"`
 	Rate          int           `short:"Q" description:"Global query-per-seconds limit" default:"1"`
 	StatsInterval time.Duration `short:"S" description:"Print stats every N seconds (0s = disable)" default:"0s"`
-    StatsPerQuery bool          `short:"p" description:"Print stats per queries (default: false)"`
-    Shuffle       bool          `short:"r" description:"Shuffle input (default: false)"`
+	StatsPerQuery bool          `short:"p" description:"Print stats per queries (default: false)"`
+	Shuffle       bool          `short:"r" description:"Shuffle input (default: false)"`
 
 	Queries []*query `no-flag:"true"`
 }
@@ -32,9 +32,9 @@ func loadOptions() (*Options, error) {
 	_, err := flags.Parse(&opts)
 	if err != nil {
 		if fe, ok := err.(*flags.Error); ok && fe.Type == flags.ErrHelp {
-            os.Exit(0)
+			os.Exit(0)
 		}
-        return nil, err
+		return nil, err
 	}
 
 	file, err := os.Open(opts.Input)

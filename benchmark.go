@@ -30,6 +30,7 @@ func runBenchmark(opts *Options) {
 	var wg sync.WaitGroup
 	for range opts.Concurrency {
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
 
@@ -67,7 +68,6 @@ func runBenchmark(opts *Options) {
 	// ticker
 	if opts.StatsInterval > 0 {
 		ticker := time.NewTicker(opts.StatsInterval)
-
 		go func() {
 			for {
 				select {

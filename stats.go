@@ -3,14 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"math"
+	"slices"
 	"sync"
 	"text/tabwriter"
 	"time"
 
 	"github.com/miekg/dns"
-	"maps"
-	"slices"
 )
 
 type counters struct {
@@ -26,8 +26,8 @@ func newCounters() counters {
 type stats struct {
 	c  counters
 	p  counters
-	pq bool
 	mc map[string]counters
+	pq bool
 	mu sync.Mutex
 
 	rttSum     uint64
@@ -42,8 +42,8 @@ func newStats(statsPQ bool) *stats {
 	return &stats{
 		c:  newCounters(),
 		p:  newCounters(),
-		pq: statsPQ,
 		mc: make(map[string]counters),
+		pq: statsPQ,
 	}
 }
 
@@ -145,7 +145,7 @@ func (s *stats) Overall(elapsed time.Duration) string {
 		}
 	}
 
-	if s.pq {
+	if received > 0 && s.pq {
 		fmt.Fprintln(w, "\nStatistics per query")
 		keys := slices.Sorted(maps.Keys(s.mc))
 		for _, key := range keys {
